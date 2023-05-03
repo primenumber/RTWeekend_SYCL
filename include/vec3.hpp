@@ -7,9 +7,9 @@ public:
   vec3() : e{0, 0, 0} {}
   vec3(float e0, float e1, float e2) : e{e0, e1, e2} {}
 
-  double x() const { return e[0]; }
-  double y() const { return e[1]; }
-  double z() const { return e[2]; }
+  float x() const { return e[0]; }
+  float y() const { return e[1]; }
+  float z() const { return e[2]; }
 
   vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
   float operator[](size_t i) const { return e[i]; }
