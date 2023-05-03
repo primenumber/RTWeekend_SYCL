@@ -4,25 +4,23 @@
 #include <sycl/sycl.hpp>
 #include <vector>
 
+#include "color.hpp"
+#include "vec3.hpp"
+
 // Image
 
 struct Image {
-  Image(size_t height, size_t width, size_t channel = 3)
-      : data(height * width * channel), height(height), width(width),
-        channel(channel) {}
-  std::vector<int> data;
+  Image(size_t height, size_t width)
+      : data(height * width), height(height), width(width) {}
+  std::vector<color> data;
   const size_t height;
   const size_t width;
-  const size_t channel;
 };
 
 std::ostream &operator<<(std::ostream &os, const Image &image) {
   os << "P3\n" << image.width << " " << image.height << "\n255\n";
   for (size_t i = 0; i < image.height * image.width; ++i) {
-    int r = image.data[i * 3 + 0];
-    int g = image.data[i * 3 + 1];
-    int b = image.data[i * 3 + 2];
-    os << r << ' ' << g << ' ' << b << '\n';
+    write_color(os, image.data.at(i));
   }
   return os;
 }
@@ -40,13 +38,8 @@ int main() {
       auto g = double(j) / (image_height - 1);
       auto b = 0.25;
 
-      int ir = static_cast<int>(255.999 * r);
-      int ig = static_cast<int>(255.999 * g);
-      int ib = static_cast<int>(255.999 * b);
-      image.data[offset + 0] = ir;
-      image.data[offset + 1] = ig;
-      image.data[offset + 2] = ib;
-      offset += 3;
+      image.data[offset] = color(r, g, b);
+      ++offset;
     }
   }
   std::cerr << "\nDone.\n";
