@@ -1,9 +1,9 @@
-TARGET   = rt_iow_gpu
-SRCS     = src/main.cpp
+TARGET   := rt_iow_gpu
+SRCS     := src/main.cpp
 
-CXX      = icpx
-CXXFLAGS = -fsycl -Iinclude -std=c++17
-LDFLAGS  =
+CXX      := icpx
+CXXFLAGS := -fsycl -Iinclude -std=c++17
+LDFLAGS  :=
 
 ifeq ($(BUILD_MODE), release)
     CXXFLAGS += -O3
