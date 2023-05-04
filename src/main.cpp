@@ -26,7 +26,18 @@ std::ostream &operator<<(std::ostream &os, const Image &image) {
   return os;
 }
 
+bool hit_sphere(const point3 &center, float radius, const ray &r) {
+  vec3 oc = r.origin() - center;
+  auto a = dot(r.direction(), r.direction());
+  auto b = 2.0f * dot(oc, r.direction());
+  auto c = dot(oc, oc) - radius * radius;
+  auto discriminant = b * b - 4 * a * c;
+  return discriminant > 0;
+}
+
 color ray_color(const ray &r) {
+  if (hit_sphere(point3(0, 0, -1), 0.5, r))
+    return color(1, 0, 0);
   vec3 unit_direction = normalize(r.dir);
   auto t = 0.5f * (unit_direction.y() + 1.0f);
   return (1.0f - t) * color(1.0f, 1.0f, 1.0f) + t * color(0.5f, 0.7f, 1.0f);
