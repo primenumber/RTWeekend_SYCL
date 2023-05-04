@@ -26,20 +26,27 @@ std::ostream &operator<<(std::ostream &os, const Image &image) {
   return os;
 }
 
-bool hit_sphere(const point3 &center, float radius, const ray &r) {
+float hit_sphere(const point3 &center, float radius, const ray &r) {
   vec3 oc = r.origin() - center;
-  auto a = dot(r.direction(), r.direction());
-  auto b = 2.0f * dot(oc, r.direction());
-  auto c = dot(oc, oc) - radius * radius;
-  auto discriminant = b * b - 4 * a * c;
-  return discriminant > 0;
+  auto a = r.direction().length_squared();
+  auto half_b = dot(oc, r.direction());
+  auto c = oc.length_squared() - radius * radius;
+  auto discriminant = half_b * half_b - a * c;
+  if (discriminant < 0) {
+    return -1.0f;
+  } else {
+    return (-half_b - std::sqrt(discriminant)) / a;
+  }
 }
 
 color ray_color(const ray &r) {
-  if (hit_sphere(point3(0, 0, -1), 0.5, r))
-    return color(1, 0, 0);
+  auto t = hit_sphere(point3(0, 0, -1), 0.5f, r);
+  if (t > 0.0f) {
+    vec3 N = normalize(r.at(t) - vec3(0, 0, -1));
+    return 0.5f * color(N.x() + 1, N.y() + 1, N.z() + 1);
+  }
   vec3 unit_direction = normalize(r.dir);
-  auto t = 0.5f * (unit_direction.y() + 1.0f);
+  t = 0.5f * (unit_direction.y() + 1.0f);
   return (1.0f - t) * color(1.0f, 1.0f, 1.0f) + t * color(0.5f, 0.7f, 1.0f);
 }
 
