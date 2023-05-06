@@ -4,6 +4,7 @@
 #include <sycl/sycl.hpp>
 #include <vector>
 
+#include "camera.hpp"
 #include "color.hpp"
 #include "hittable_list.hpp"
 #include "rtweekend.hpp"
@@ -19,12 +20,12 @@ struct Image {
   const size_t width;
 };
 
-std::ostream &operator<<(std::ostream &os, const Image &image) {
+void write_image(std::ostream &os, const Image &image,
+                 size_t samples_per_pixel) {
   os << "P3\n" << image.width << " " << image.height << "\n255\n";
   for (size_t i = 0; i < image.height * image.width; ++i) {
-    write_color(os, image.data.at(i));
+    write_color(os, image.data.at(i), samples_per_pixel);
   }
-  return os;
 }
 
 color ray_color(const ray &r, const hittable_list &world) {
@@ -37,12 +38,17 @@ color ray_color(const ray &r, const hittable_list &world) {
   return (1.0f - t) * color(1.0f, 1.0f, 1.0f) + t * color(0.5f, 0.7f, 1.0f);
 }
 
+void write_vec3(std::ostream &os, const vec3 &v) {
+  os << v.x() << ',' << v.y() << ',' << v.z() << '\n';
+}
+
 int main() {
   sycl::queue q;
   // Image
   const auto aspect_ratio = 16.0 / 9.0;
   const size_t image_width = 400;
   const size_t image_height = static_cast<size_t>(image_width / aspect_ratio);
+  const size_t samples_per_pixel = 100;
   Image image(image_height, image_width);
 
   // World
@@ -53,15 +59,7 @@ int main() {
   world.length = 2;
 
   // Camera
-  auto viewport_height = 2.0;
-  auto viewport_width = aspect_ratio * viewport_height;
-  auto focal_length = 1.0;
-
-  auto origin = point3(0, 0, 0);
-  auto horizontal = vec3(viewport_width, 0, 0);
-  auto vertical = vec3(0, viewport_height, 0);
-  auto lower_left_corner =
-      origin - horizontal / 2 - vertical / 2 - vec3(0, 0, focal_length);
+  camera cam;
 
   // Buffer
   auto image_buf = sycl::malloc_shared<color>(image_height * image_width, q);
@@ -69,13 +67,16 @@ int main() {
   // Render
   q.submit([&](sycl::handler &h) {
      h.parallel_for(sycl::range<2>(image_height, image_width), [=](auto &idx) {
+       xorshift32 gen;
        size_t i = image_height - idx[0] - 1;
        size_t j = idx[1];
-       auto u = float(j) / (image_width - 1);
-       auto v = float(i) / (image_height - 1);
-       ray r(origin,
-             lower_left_corner + u * horizontal + v * vertical - origin);
-       color pixel_color = ray_color(r, world);
+       color pixel_color(0, 0, 0);
+       for (size_t s = 0; s < samples_per_pixel; ++s) {
+         auto u = (j + random_float(gen)) / (image_width - 1);
+         auto v = (i + random_float(gen)) / (image_height - 1);
+         ray r = cam.get_ray(u, v);
+         pixel_color += ray_color(r, world);
+       }
 
        size_t offset = idx[0] * image_width + idx[1];
        image_buf[offset] = pixel_color;
@@ -86,7 +87,7 @@ int main() {
   }
 
   // Show
-  std::cout << image;
+  write_image(std::cout, image, samples_per_pixel);
   sycl::free(image_buf, q);
   sycl::free(world.ptr, q);
   return 0;
