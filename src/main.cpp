@@ -5,8 +5,9 @@
 #include <vector>
 
 #include "color.hpp"
-#include "ray.hpp"
-#include "vec3.hpp"
+#include "hittable_list.hpp"
+#include "rtweekend.hpp"
+#include "sphere.hpp"
 
 // Image
 
@@ -26,36 +27,30 @@ std::ostream &operator<<(std::ostream &os, const Image &image) {
   return os;
 }
 
-float hit_sphere(const point3 &center, float radius, const ray &r) {
-  vec3 oc = r.origin() - center;
-  auto a = r.direction().length_squared();
-  auto half_b = dot(oc, r.direction());
-  auto c = oc.length_squared() - radius * radius;
-  auto discriminant = half_b * half_b - a * c;
-  if (discriminant < 0) {
-    return -1.0f;
-  } else {
-    return (-half_b - std::sqrt(discriminant)) / a;
-  }
-}
-
-color ray_color(const ray &r) {
-  auto t = hit_sphere(point3(0, 0, -1), 0.5f, r);
-  if (t > 0.0f) {
-    vec3 N = normalize(r.at(t) - vec3(0, 0, -1));
-    return 0.5f * color(N.x() + 1, N.y() + 1, N.z() + 1);
+color ray_color(const ray &r, const hittable_list &world) {
+  hit_record rec;
+  if (world.hit(r, 0, infinity, rec)) {
+    return 0.5f * (rec.normal + color(1, 1, 1));
   }
   vec3 unit_direction = normalize(r.dir);
-  t = 0.5f * (unit_direction.y() + 1.0f);
+  auto t = 0.5f * (unit_direction.y() + 1.0f);
   return (1.0f - t) * color(1.0f, 1.0f, 1.0f) + t * color(0.5f, 0.7f, 1.0f);
 }
 
 int main() {
+  sycl::queue q;
   // Image
   const auto aspect_ratio = 16.0 / 9.0;
   const size_t image_width = 400;
   const size_t image_height = static_cast<size_t>(image_width / aspect_ratio);
   Image image(image_height, image_width);
+
+  // World
+  hittable_list world;
+  world.ptr = sycl::malloc_shared<hittable>(2, q);
+  world.ptr[0] = sphere(point3(0, 0, -1), 0.5f);
+  world.ptr[1] = sphere(point3(0, -100.5f, -1), 100);
+  world.length = 2;
 
   // Camera
   auto viewport_height = 2.0;
@@ -69,7 +64,6 @@ int main() {
       origin - horizontal / 2 - vertical / 2 - vec3(0, 0, focal_length);
 
   // Buffer
-  sycl::queue q;
   auto image_buf = sycl::malloc_shared<color>(image_height * image_width, q);
 
   // Render
@@ -81,7 +75,7 @@ int main() {
        auto v = float(i) / (image_height - 1);
        ray r(origin,
              lower_left_corner + u * horizontal + v * vertical - origin);
-       color pixel_color = ray_color(r);
+       color pixel_color = ray_color(r, world);
 
        size_t offset = idx[0] * image_width + idx[1];
        image_buf[offset] = pixel_color;
@@ -93,5 +87,7 @@ int main() {
 
   // Show
   std::cout << image;
+  sycl::free(image_buf, q);
+  sycl::free(world.ptr, q);
   return 0;
 }
