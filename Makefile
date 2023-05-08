@@ -2,7 +2,7 @@ TARGET   := rt_iow_gpu
 SRCS     := src/main.cpp
 
 CXX      := icpx
-CXXFLAGS := -fsycl -Iinclude -std=c++17
+CXXFLAGS := -fsycl -Iinclude -std=c++17 -Wall -Wextra
 LDFLAGS  :=
 
 ifeq ($(BUILD_MODE), release)
