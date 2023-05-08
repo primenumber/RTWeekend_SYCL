@@ -37,6 +37,15 @@ public:
     return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
   }
 
+  static vec3 random(xorshift32 &gen) {
+    return vec3(random_float(gen), random_float(gen), random_float(gen));
+  }
+
+  static vec3 random(xorshift32 &gen, float min, float max) {
+    return vec3(random_float(gen, min, max), random_float(gen, min, max),
+                random_float(gen, min, max));
+  }
+
 public:
   float e[3];
 };
@@ -80,3 +89,13 @@ inline vec3 cross(const vec3 &u, const vec3 &v) {
 
 inline vec3 normalize(const vec3 &v) { return v / v.length(); }
 
+inline vec3 random_in_unit_sphere(xorshift32 &gen) {
+  auto y = random_float(gen, -1, 1);
+  auto r = sycl::sqrt(1.0f - y * y);
+  auto theta = random_float(gen, 0, 2.0f * sycl::acos(-1.0f));
+  return vec3(r * sycl::cos(theta), y, r * sycl::sin(theta));
+}
+
+inline vec3 random_unit_vector(xorshift32 &gen) {
+  return normalize(random_in_unit_sphere(gen));
+}

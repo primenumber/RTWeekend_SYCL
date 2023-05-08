@@ -28,14 +28,25 @@ void write_image(std::ostream &os, const Image &image,
   }
 }
 
-color ray_color(const ray &r, const hittable_list &world) {
-  hit_record rec;
-  if (world.hit(r, 0, infinity, rec)) {
-    return 0.5f * (rec.normal + color(1, 1, 1));
+color ray_color(xorshift32 &gen, ray r, const hittable_list &world,
+                size_t max_depth) {
+  float coeff = 1.0f;
+  for (size_t depth = 0; depth < max_depth; ++depth) {
+    hit_record rec;
+
+    if (world.hit(r, 0.001f, infinity, rec)) {
+      point3 target = rec.p + rec.normal + random_unit_vector(gen);
+      coeff *= 0.5f;
+      r = ray(rec.p, target - rec.p);
+      continue;
+    }
+
+    vec3 unit_direction = normalize(r.dir);
+    auto t = 0.5f * (unit_direction.y() + 1.0f);
+    return coeff *
+           ((1.0f - t) * color(1.0f, 1.0f, 1.0f) + t * color(0.5f, 0.7f, 1.0f));
   }
-  vec3 unit_direction = normalize(r.dir);
-  auto t = 0.5f * (unit_direction.y() + 1.0f);
-  return (1.0f - t) * color(1.0f, 1.0f, 1.0f) + t * color(0.5f, 0.7f, 1.0f);
+  return color(0, 0, 0);
 }
 
 void write_vec3(std::ostream &os, const vec3 &v) {
@@ -43,19 +54,22 @@ void write_vec3(std::ostream &os, const vec3 &v) {
 }
 
 int main() {
-  sycl::queue q;
+  sycl::queue q(sycl::cpu_selector_v);
+  // sycl::queue q;
+
   // Image
   const auto aspect_ratio = 16.0 / 9.0;
-  const size_t image_width = 400;
+  const size_t image_width = 800;
   const size_t image_height = static_cast<size_t>(image_width / aspect_ratio);
   const size_t samples_per_pixel = 100;
+  const size_t max_depth = 50;
   Image image(image_height, image_width);
 
   // World
   hittable_list world;
   world.ptr = sycl::malloc_shared<hittable>(2, q);
-  world.ptr[0] = sphere(point3(0, 0, -1), 0.5f);
-  world.ptr[1] = sphere(point3(0, -100.5f, -1), 100);
+  world[0] = sphere(point3(0, 0, -1), 0.5f);
+  world[1] = sphere(point3(0, -100.5f, -1), 100);
   world.length = 2;
 
   // Camera
@@ -67,7 +81,11 @@ int main() {
   // Render
   q.submit([&](sycl::handler &h) {
      h.parallel_for(sycl::range<2>(image_height, image_width), [=](auto &idx) {
-       xorshift32 gen;
+       size_t offset = idx[0] * image_width + idx[1];
+       xorshift32 gen(offset);
+       for (size_t i = 0; i < 100; ++i) {
+         gen.next();
+       }
        size_t i = image_height - idx[0] - 1;
        size_t j = idx[1];
        color pixel_color(0, 0, 0);
@@ -75,10 +93,9 @@ int main() {
          auto u = (j + random_float(gen)) / (image_width - 1);
          auto v = (i + random_float(gen)) / (image_height - 1);
          ray r = cam.get_ray(u, v);
-         pixel_color += ray_color(r, world);
+         pixel_color += ray_color(gen, r, world, max_depth);
        }
 
-       size_t offset = idx[0] * image_width + idx[1];
        image_buf[offset] = pixel_color;
      });
    }).wait();
