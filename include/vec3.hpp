@@ -31,7 +31,7 @@ public:
 
   vec3 &operator/=(const float t) { return *this *= 1 / t; }
 
-  float length() const { return std::sqrt(length_squared()); }
+  float length() const { return sycl::sqrt(length_squared()); }
 
   float length_squared() const {
     return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];

@@ -6,7 +6,7 @@
 #include <random>
 
 constexpr float infinity = std::numeric_limits<float>::infinity();
-const float pi = std::acos(-1);
+const float pi = sycl::acos(-1.f);
 
 inline float degrees_to_radians(float degrees) { return degrees * pi / 180.0f; }
 

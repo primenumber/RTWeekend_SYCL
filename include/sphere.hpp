@@ -17,7 +17,7 @@ public:
     if (discriminant < 0) {
       return false;
     }
-    auto sqrtd = std::sqrt(discriminant);
+    auto sqrtd = sycl::sqrt(discriminant);
 
     auto root = (-half_b - sqrtd) / a;
     if (root < t_min || t_max < root) {
