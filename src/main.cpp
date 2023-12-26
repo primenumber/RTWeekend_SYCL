@@ -65,9 +65,9 @@ int main() {
 
   // Image
   const auto aspect_ratio = 16.0 / 9.0;
-  const size_t image_width = 800;
+  const size_t image_width = 1980;
   const size_t image_height = static_cast<size_t>(image_width / aspect_ratio);
-  const size_t samples_per_pixel = 100;
+  const size_t samples_per_pixel = 500;
   const size_t max_depth = 50;
   Image image(image_height, image_width);
 
