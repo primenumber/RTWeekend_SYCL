@@ -1,3 +1,4 @@
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -54,8 +55,12 @@ void write_vec3(std::ostream &os, const vec3 &v) {
 }
 
 int main() {
+  using clock = std::chrono::high_resolution_clock;
+
   sycl::queue q(sycl::cpu_selector_v);
   // sycl::queue q;
+
+  const auto start = clock::now();
 
   // Image
   const auto aspect_ratio = 16.0 / 9.0;
@@ -78,6 +83,8 @@ int main() {
   // Buffer
   auto image_buf = sycl::malloc_shared<color>(image_height * image_width, q);
 
+  const auto start_gpu = clock::now();
+
   // Render
   q.submit([&](sycl::handler &h) {
      h.parallel_for(sycl::range<2>(image_height, image_width), [=](auto &idx) {
@@ -99,13 +106,35 @@ int main() {
        image_buf[offset] = pixel_color;
      });
    }).wait();
+
+  const auto finish_gpu = clock::now();
+
   for (size_t i = 0; i < image_height * image_width; ++i) {
     image.data[i] = image_buf[i];
   }
+
+  const auto finish_cpu = clock::now();
 
   // Show
   write_image(std::cout, image, samples_per_pixel);
   sycl::free(image_buf, q);
   sycl::free(world.ptr, q);
+
+  const auto finish_write = clock::now();
+
+  using millis = std::chrono::milliseconds;
+
+  std::cerr << "Prepare: " << duration_cast<millis>(start_gpu - start).count()
+            << std::endl;
+  std::cerr << "Compute: "
+            << duration_cast<millis>(finish_gpu - start_gpu).count()
+            << std::endl;
+  std::cerr << "Download: "
+            << duration_cast<millis>(finish_cpu - finish_gpu).count()
+            << std::endl;
+  std::cerr << "Write: "
+            << duration_cast<millis>(finish_write - finish_cpu).count()
+            << std::endl;
+
   return 0;
 }
