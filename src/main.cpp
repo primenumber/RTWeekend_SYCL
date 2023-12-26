@@ -30,7 +30,7 @@ void write_image(std::ostream &os, const Image &image,
 }
 
 color ray_color(xorshift32 &gen, ray r, const hittable_list &world,
-                size_t max_depth) {
+                const size_t max_depth) {
   float coeff = 1.0f;
   for (size_t depth = 0; depth < max_depth; ++depth) {
     hit_record rec;
