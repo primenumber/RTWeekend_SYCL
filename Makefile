@@ -8,7 +8,7 @@ LDFLAGS  :=
 ifeq ($(BUILD_MODE), release)
     CXXFLAGS += -O3
 else
-    CXXFLAGS += -Og -g
+    CXXFLAGS += -Og
 endif
 
 .PHONY: clean
