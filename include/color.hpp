@@ -10,11 +10,11 @@ void write_color(std::ostream &out, const color &pixel_color,
   auto b = pixel_color.z();
 
   auto scale = 1.0f / samples_per_pixel;
-  r = pow(r * scale, 1 / 2.2);
-  g = pow(g * scale, 1 / 2.2);
-  b = pow(b * scale, 1 / 2.2);
+  r = pow(r * scale, 1.f / 2.2f);
+  g = pow(g * scale, 1.f / 2.2f);
+  b = pow(b * scale, 1.f / 2.2f);
 
-  out << static_cast<int>(255.999 * std::clamp(r, 0.0f, 0.999f)) << ' '
-      << static_cast<int>(255.999 * std::clamp(g, 0.0f, 0.999f)) << ' '
-      << static_cast<int>(255.999 * std::clamp(b, 0.0f, 0.999f)) << '\n';
+  out << static_cast<int>(255.999f * std::clamp(r, 0.0f, 0.999f)) << ' '
+      << static_cast<int>(255.999f * std::clamp(g, 0.0f, 0.999f)) << ' '
+      << static_cast<int>(255.999f * std::clamp(b, 0.0f, 0.999f)) << '\n';
 }
