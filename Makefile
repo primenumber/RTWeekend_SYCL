@@ -1,8 +1,10 @@
 TARGET   := rt_iow_gpu
 SRCS     := src/main.cpp
+INCLUDES := $(wildcard include/*.hpp)
 
 CXX      := icpx
-CXXFLAGS := -fsycl -Iinclude -std=c++20 -Wall -Wextra
+SYCLFLAGS := -fsycl
+CXXFLAGS := -Iinclude -std=c++20 -Wall -Wextra
 LDFLAGS  :=
 
 ifeq ($(BUILD_MODE), release)
@@ -13,8 +15,13 @@ endif
 
 .PHONY: clean
 
-$(TARGET): $(SRCS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
+$(TARGET): main.o
+	$(CXX) -o $@ $^ $(SYCLFLAGS) $(LDFLAGS)
+
+%.o: src/%.cpp
+	$(CXX) -c -o $@ $< $(SYCLFLAGS) $(CXXFLAGS)
+
+main.o: $(INCLUDES)
 
 clean:
 	-$(RM) $(TARGET)
