@@ -55,6 +55,8 @@ void write_vec3(std::ostream &os, const vec3 &v) {
 }
 
 int main() {
+  std::ios::sync_with_stdio(false);
+
   using clock = std::chrono::high_resolution_clock;
 
   sycl::queue q(sycl::cpu_selector_v);
